@@ -4,6 +4,8 @@
 import json
 import sys
 
+import jsonschema
+
 
 def get_train():
     """
@@ -65,7 +67,7 @@ def select_trains(staff, jet):
     return result
 
 
-def save_rains(file_name, staff):
+def save_trains(file_name, staff):
     """
     Сохранить все поезда в файл JSON.
     """
@@ -80,16 +82,40 @@ def load_trains(file_name):
     """
     Загрузить все поезда из файла JSON.
     """
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "items": [
+            {
+                "type": "object",
+                "properties": {
+                    "dist": {"type": "string"},
+                    "time": {"type": "integer"},
+                    "typ": {"type": "string"},
+                },
+                "required": ["dist", "time", "typ"],
+            }
+        ],
+    }
+
     # Открыть файл с заданным именем для чтения.
     with open(file_name, "r", encoding="utf-8") as fin:
-        return json.load(fin)
+        loadfile = json.load(fin)
+        validator = jsonschema.Draft7Validator(schema)
+        try:
+            if not validator.validate(loadfile):
+                print("Валидация прошла успешно")
+        except jsonschema.exceptions.ValidationError:
+            print("Ошибка валидации", list(validator.iter_errors(loadfile)))
+            exit()
+    return loadfile
 
 
 def main():
     """
     Главная функция программы.
     """
-    # Список поездов.
+    # Список самолетов.
     trains = []
 
     # Организовать бесконечный цикл запроса команд.
@@ -132,7 +158,7 @@ def main():
             file_name = parts[1]
 
             # Сохранить данные в файл с заданным именем.
-            save_rains(file_name, trains)
+            save_trains(file_name, trains)
 
         elif command.startswith("load "):
             # Разбить команду на части для выделения имени файла.
